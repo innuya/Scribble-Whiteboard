@@ -41,7 +41,25 @@ const RoomSchema = new mongoose.Schema(
       x: { type: Number, default: 0 },
       y: { type: Number, default: 0 },
       width: { type: Number, default: 0 },
-      height: { type: Number, default: 0 }
+      height: { type: Number, default: 0 },
+      frame: {
+        style: { type: String, default: 'none' },
+        color: { type: String, default: '#111111' },
+        width: { type: Number, default: 2 }
+      }
+    },
+    textItems: {
+      type: [
+        {
+          id: String,
+          text: String,
+          x: Number,
+          y: Number,
+          size: Number,
+          color: String
+        }
+      ],
+      default: []
     },
     strokes: { type: [StrokeSchema], default: [] }
   },
@@ -80,7 +98,7 @@ function makeToken() {
 }
 
 function sanitizeBrush(value) {
-  const allowed = new Set(['scribble', 'pen', 'marker', 'spray', 'eraser']);
+  const allowed = new Set(['scribble', 'pen', 'marker', 'spray', 'neon', 'calligraphy', 'eraser']);
   return allowed.has(value) ? value : 'scribble';
 }
 
@@ -103,6 +121,7 @@ async function saveRoomToDb(roomId) {
       $set: {
         token: room.token,
         image: room.image,
+        textItems: room.textItems,
         strokes: room.strokes
       }
     },
@@ -140,6 +159,7 @@ async function getRoom(roomId) {
   const room = {
     token: dbRoom?.token || null,
     image: dbRoom?.image || null,
+    textItems: Array.isArray(dbRoom?.textItems) ? dbRoom.textItems : [],
     strokes: Array.isArray(dbRoom?.strokes) ? dbRoom.strokes : []
   };
 
@@ -226,6 +246,7 @@ io.on('connection', (socket) => {
     socket.emit('join-success', { roomId, protected: Boolean(room.token) });
     socket.emit('init-room', {
       image: room.image || null,
+      textItems: room.textItems || [],
       strokes: room.strokes,
       protected: Boolean(room.token)
     });
@@ -358,7 +379,12 @@ io.on('connection', (socket) => {
       x: Number(payload.x || 0),
       y: Number(payload.y || 0),
       width: Number(payload.width || 0),
-      height: Number(payload.height || 0)
+      height: Number(payload.height || 0),
+      frame: {
+        style: String(payload.frame?.style || 'none'),
+        color: String(payload.frame?.color || '#111111'),
+        width: Number(payload.frame?.width || 2)
+      }
     };
 
     io.to(roomId).emit('image-updated', room.image);
@@ -408,6 +434,79 @@ io.on('connection', (socket) => {
     const room = await getRoom(roomId);
     room.image = null;
     io.to(roomId).emit('image-removed');
+    scheduleRoomSave(roomId);
+  });
+
+  socket.on('add-text', async (payload = {}) => {
+    const roomId = socket.data.roomId;
+    if (!roomId) {
+      return;
+    }
+    const room = await getRoom(roomId);
+    const textItem = {
+      id: String(payload.id || ''),
+      text: String(payload.text || ''),
+      x: Number(payload.x || 0),
+      y: Number(payload.y || 0),
+      size: Number(payload.size || 24),
+      color: String(payload.color || '#111111')
+    };
+    if (!textItem.id || !textItem.text.trim()) {
+      return;
+    }
+    room.textItems.push(textItem);
+    if (room.textItems.length > 500) {
+      room.textItems.splice(0, room.textItems.length - 500);
+    }
+    io.to(roomId).emit('text-added', textItem);
+    scheduleRoomSave(roomId);
+  });
+
+  socket.on('remove-text', async (payload = {}) => {
+    const roomId = socket.data.roomId;
+    if (!roomId) {
+      return;
+    }
+    const room = await getRoom(roomId);
+    const id = String(payload.id || '');
+    if (!id) {
+      return;
+    }
+    room.textItems = room.textItems.filter((item) => item.id !== id);
+    io.to(roomId).emit('text-removed', { id });
+    scheduleRoomSave(roomId);
+  });
+
+  socket.on('update-text', async (payload = {}) => {
+    const roomId = socket.data.roomId;
+    if (!roomId) {
+      return;
+    }
+    const room = await getRoom(roomId);
+    const id = String(payload.id || '');
+    if (!id) {
+      return;
+    }
+    const item = room.textItems.find((textItem) => textItem.id === id);
+    if (!item) {
+      return;
+    }
+    if (typeof payload.text === 'string') {
+      item.text = payload.text;
+    }
+    if (typeof payload.x !== 'undefined') {
+      item.x = Number(payload.x || 0);
+    }
+    if (typeof payload.y !== 'undefined') {
+      item.y = Number(payload.y || 0);
+    }
+    if (typeof payload.size !== 'undefined') {
+      item.size = Number(payload.size || item.size || 24);
+    }
+    if (typeof payload.color === 'string') {
+      item.color = payload.color;
+    }
+    io.to(roomId).emit('text-updated', item);
     scheduleRoomSave(roomId);
   });
 

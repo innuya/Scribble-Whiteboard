@@ -20,7 +20,7 @@
         <label>Color</label>
         <input id="colorInput" type="color" value="#1f1f1f" />
         <label>Size</label>
-        <input id="sizeInput" type="range" min="1" max="24" value="4" />
+        <input id="sizeInput" type="range" min="1" max="36" value="4" />
         <label>Opacity</label>
         <input id="opacityInput" type="range" min="10" max="100" value="100" />
         <label>Brush</label>
@@ -29,25 +29,35 @@
           <option value="pen">Pen</option>
           <option value="marker">Marker</option>
           <option value="spray">Spray</option>
-          <option value="eraser">Eraser</option>
+          <option value="neon">Neon</option>
+          <option value="calligraphy">Calligraphy</option>
+          <option value="eraser">Smooth Eraser</option>
         </select>
       </div>
 
       <div class="group">
         <span>Palette</span>
-        <button class="swatch" data-color="#1f1f1f" style="--sw:#1f1f1f" title="Black"></button>
-        <button class="swatch" data-color="#d62828" style="--sw:#d62828" title="Red"></button>
-        <button class="swatch" data-color="#f77f00" style="--sw:#f77f00" title="Orange"></button>
-        <button class="swatch" data-color="#fcbf49" style="--sw:#fcbf49" title="Yellow"></button>
-        <button class="swatch" data-color="#2a9d8f" style="--sw:#2a9d8f" title="Teal"></button>
-        <button class="swatch" data-color="#457b9d" style="--sw:#457b9d" title="Blue"></button>
-        <button class="swatch" data-color="#7b2cbf" style="--sw:#7b2cbf" title="Violet"></button>
+        <button class="swatch" data-color="#111111" style="--sw:#111111"></button>
+        <button class="swatch" data-color="#2b2d42" style="--sw:#2b2d42"></button>
+        <button class="swatch" data-color="#d62828" style="--sw:#d62828"></button>
+        <button class="swatch" data-color="#f77f00" style="--sw:#f77f00"></button>
+        <button class="swatch" data-color="#fcbf49" style="--sw:#fcbf49"></button>
+        <button class="swatch" data-color="#a7c957" style="--sw:#a7c957"></button>
+        <button class="swatch" data-color="#2a9d8f" style="--sw:#2a9d8f"></button>
+        <button class="swatch" data-color="#00b4d8" style="--sw:#00b4d8"></button>
+        <button class="swatch" data-color="#457b9d" style="--sw:#457b9d"></button>
+        <button class="swatch" data-color="#3a0ca3" style="--sw:#3a0ca3"></button>
+        <button class="swatch" data-color="#7b2cbf" style="--sw:#7b2cbf"></button>
+        <button class="swatch" data-color="#ff006e" style="--sw:#ff006e"></button>
       </div>
 
       <div class="group">
         <button id="undoBtn">Undo</button>
         <button id="redoBtn">Redo</button>
         <button id="clearBtn">Clear</button>
+        <button id="fillModeBtn">Fill Mode</button>
+        <label>Tolerance</label>
+        <input id="fillToleranceInput" type="range" min="0" max="100" value="22" />
       </div>
 
       <div class="group">
@@ -59,10 +69,55 @@
       <div class="group">
         <button id="importImageBtn">Import Image</button>
         <input id="imageInput" type="file" accept="image/*" />
+        <button id="imageUndoBtn">Image Undo</button>
+        <button id="imageRedoBtn">Image Redo</button>
         <button id="moveImageBtn">Move Image</button>
-        <label>Image Scale</label>
-        <input id="imageScaleInput" type="range" min="10" max="200" value="100" />
+        <button id="fitContainBtn">Fit Image</button>
+        <button id="fillBgBtn">Fill Background</button>
+        <button id="originalSizeBtn">Original Size</button>
+        <label>W%</label>
+        <input id="imageWidthInput" type="range" min="10" max="220" value="100" />
+        <label>H%</label>
+        <input id="imageHeightInput" type="range" min="10" max="220" value="100" />
         <button id="removeImageBtn">Remove Image</button>
+      </div>
+
+      <div class="group">
+        <label>Frame</label>
+        <select id="frameStyleInput">
+          <option value="none" selected>None</option>
+          <option value="solid">Solid</option>
+          <option value="dashed">Dashed</option>
+          <option value="double">Double</option>
+          <option value="glow">Glow</option>
+        </select>
+        <label>Frame Color</label>
+        <input id="frameColorInput" type="color" value="#111111" />
+        <label>Frame Size</label>
+        <input id="frameWidthInput" type="range" min="1" max="24" value="3" />
+      </div>
+
+      <div class="group">
+        <input id="textInput" type="text" placeholder="type text..." maxlength="120" />
+        <label>Text Size</label>
+        <input id="textSizeInput" type="range" min="12" max="72" value="28" />
+        <label>Place</label>
+        <select id="textPlaceInput">
+          <option value="outside" selected>Outside Image</option>
+          <option value="inside">Inside Image</option>
+          <option value="any">Anywhere</option>
+        </select>
+        <button id="textModeBtn">Text Mode</button>
+        <button id="textMoveModeBtn">Text Move</button>
+        <button id="textEditModeBtn">Text Edit</button>
+        <button id="removeLastTextBtn">Remove Last Text</button>
+      </div>
+
+      <div class="group">
+        <button id="cropModeBtn">Crop Tool</button>
+        <button id="cutModeBtn">Cut Tool</button>
+        <button id="applyEditBtn">Apply</button>
+        <button id="cancelEditBtn">Cancel</button>
       </div>
     </div>
 
