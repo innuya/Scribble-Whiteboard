@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Scribble Whiteboard</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="topbar">
+      <div class="group">
+        <label>Room</label>
+        <input id="roomInput" type="text" placeholder="enter room name" maxlength="40" />
+        <label>Token</label>
+        <input id="tokenInput" type="text" placeholder="optional" maxlength="64" />
+        <button id="joinBtn">Join</button>
+      </div>
+
+      <div class="group">
+        <label>Color</label>
+        <input id="colorInput" type="color" value="#1f1f1f" />
+        <label>Size</label>
+        <input id="sizeInput" type="range" min="1" max="24" value="4" />
+        <label>Opacity</label>
+        <input id="opacityInput" type="range" min="10" max="100" value="100" />
+        <label>Brush</label>
+        <select id="brushInput">
+          <option value="scribble" selected>Scribble</option>
+          <option value="pen">Pen</option>
+          <option value="marker">Marker</option>
+          <option value="spray">Spray</option>
+          <option value="eraser">Eraser</option>
+        </select>
+      </div>
+
+      <div class="group">
+        <span>Palette</span>
+        <button class="swatch" data-color="#1f1f1f" style="--sw:#1f1f1f" title="Black"></button>
+        <button class="swatch" data-color="#d62828" style="--sw:#d62828" title="Red"></button>
+        <button class="swatch" data-color="#f77f00" style="--sw:#f77f00" title="Orange"></button>
+        <button class="swatch" data-color="#fcbf49" style="--sw:#fcbf49" title="Yellow"></button>
+        <button class="swatch" data-color="#2a9d8f" style="--sw:#2a9d8f" title="Teal"></button>
+        <button class="swatch" data-color="#457b9d" style="--sw:#457b9d" title="Blue"></button>
+        <button class="swatch" data-color="#7b2cbf" style="--sw:#7b2cbf" title="Violet"></button>
+      </div>
+
+      <div class="group">
+        <button id="undoBtn">Undo</button>
+        <button id="redoBtn">Redo</button>
+        <button id="clearBtn">Clear</button>
+      </div>
+
+      <div class="group">
+        <button id="shareBtn">Create Share Link</button>
+        <button id="saveBtn">Save Room</button>
+        <span id="usersCount">Users: 0</span>
+      </div>
+
+      <div class="group">
+        <button id="importImageBtn">Import Image</button>
+        <input id="imageInput" type="file" accept="image/*" />
+        <button id="moveImageBtn">Move Image</button>
+        <label>Image Scale</label>
+        <input id="imageScaleInput" type="range" min="10" max="200" value="100" />
+        <button id="removeImageBtn">Remove Image</button>
+      </div>
+    </div>
+
+    <div class="statusbar">
+      <span id="statusText">Ready</span>
+      <a id="shareLink" href="#" target="_blank" rel="noreferrer"></a>
+    </div>
+
+    <canvas id="board"></canvas>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
