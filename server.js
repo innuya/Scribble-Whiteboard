@@ -98,7 +98,18 @@ function makeToken() {
 }
 
 function sanitizeBrush(value) {
-  const allowed = new Set(['scribble', 'pen', 'marker', 'spray', 'neon', 'calligraphy', 'eraser']);
+  const allowed = new Set([
+    'scribble',
+    'pen',
+    'marker',
+    'spray',
+    'glitter',
+    'watercolor',
+    'mixedcolor',
+    'neon',
+    'calligraphy',
+    'eraser'
+  ]);
   return allowed.has(value) ? value : 'scribble';
 }
 

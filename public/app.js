@@ -19,6 +19,8 @@ const usersCount = document.getElementById('usersCount');
 const statusText = document.getElementById('statusText');
 const shareLink = document.getElementById('shareLink');
 const swatchButtons = Array.from(document.querySelectorAll('.swatch'));
+const mobileTabButtons = Array.from(document.querySelectorAll('.mobile-tab'));
+const sectionGroups = Array.from(document.querySelectorAll('.group[data-section]'));
 
 const importImageBtn = document.getElementById('importImageBtn');
 const imageInput = document.getElementById('imageInput');
@@ -94,8 +96,39 @@ const boardImage = {
   }
 };
 
+const WORKSPACE_PAD_DESKTOP = 220;
+const WORKSPACE_PAD_MOBILE = 120;
+
 function setStatus(text) {
   statusText.textContent = text;
+}
+
+function updateCanvasCursor() {
+  if (brushInput.value === 'eraser') {
+    canvas.style.cursor =
+      "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='26' height='26' viewBox='0 0 26 26'%3E%3Cg transform='rotate(-28 13 13)'%3E%3Crect x='6' y='7' width='14' height='11' rx='2' fill='%23f8fafc' stroke='%23111827' stroke-width='1.6'/%3E%3Crect x='6' y='15.5' width='14' height='3' fill='%23fda4af'/%3E%3C/g%3E%3C/svg%3E\") 4 20, auto";
+    return;
+  }
+
+  canvas.style.cursor = 'default';
+}
+
+function setMobileSection(section) {
+  mobileTabButtons.forEach((btn) => {
+    btn.classList.toggle('active', btn.dataset.tab === section);
+  });
+  sectionGroups.forEach((group) => {
+    group.classList.toggle('tab-visible', group.dataset.section === section);
+  });
+}
+
+function refreshResponsiveSections() {
+  if (window.innerWidth > 700) {
+    sectionGroups.forEach((group) => group.classList.remove('tab-visible'));
+    return;
+  }
+  const active = document.querySelector('.mobile-tab.active')?.dataset.tab || 'draw';
+  setMobileSection(active);
 }
 
 function randomId() {
@@ -210,6 +243,7 @@ function updateModeButtons() {
   textEditModeBtn.classList.toggle('active', textEditMode);
   cropModeBtn.classList.toggle('active', editMode === 'crop');
   cutModeBtn.classList.toggle('active', editMode === 'cut');
+  updateCanvasCursor();
 }
 
 function disableOtherModes(except) {
@@ -235,13 +269,50 @@ function ensureJoined() {
   return true;
 }
 
+function updateBoardWorkspace() {
+  const isMobile = window.innerWidth <= 900;
+  const workspacePad = isMobile ? WORKSPACE_PAD_MOBILE : WORKSPACE_PAD_DESKTOP;
+  const minWorkspaceW = isMobile ? window.innerWidth : Math.max(window.innerWidth, 1000);
+  const topbar = document.querySelector('.topbar');
+  const statusbar = document.querySelector('.statusbar');
+  const occupiedTop = (topbar?.offsetHeight || 0) + (statusbar?.offsetHeight || 0);
+  const minWorkspaceH = isMobile
+    ? Math.max(520, window.innerHeight - occupiedTop)
+    : Math.max(700, window.innerHeight - occupiedTop);
+  let targetW = minWorkspaceW;
+  let targetH = minWorkspaceH;
+
+  if (boardImage.img) {
+    const right = boardImage.x + boardImage.width + workspacePad;
+    const bottom = boardImage.y + boardImage.height + workspacePad;
+    const leftExpansion = boardImage.x < workspacePad ? workspacePad - boardImage.x : 0;
+    const topExpansion = boardImage.y < workspacePad ? workspacePad - boardImage.y : 0;
+    targetW = Math.max(targetW, right + leftExpansion);
+    targetH = Math.max(targetH, bottom + topExpansion);
+  }
+
+  for (const item of textItems) {
+    const textW = Math.max(160, (item.text?.length || 0) * (Number(item.size || 24) * 0.55));
+    const textH = Number(item.size || 24) * 1.6;
+    const right = Number(item.x || 0) + textW + workspacePad;
+    const bottom = Number(item.y || 0) + textH + workspacePad;
+    targetW = Math.max(targetW, right);
+    targetH = Math.max(targetH, bottom);
+  }
+
+  canvas.style.width = `${Math.ceil(targetW)}px`;
+  canvas.style.height = `${Math.ceil(targetH)}px`;
+}
+
 function resize() {
+  updateBoardWorkspace();
   const dpr = window.devicePixelRatio || 1;
   const rect = canvas.getBoundingClientRect();
   canvas.width = Math.floor(rect.width * dpr);
   canvas.height = Math.floor(rect.height * dpr);
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   redrawAll();
+  refreshResponsiveSections();
 }
 
 function pointFromEvent(e) {
@@ -331,6 +402,16 @@ function drawSelection() {
   ctx.restore();
 }
 
+function seededNoise(n) {
+  const x = Math.sin(n * 12.9898) * 43758.5453;
+  return x - Math.floor(x);
+}
+
+function mixedColorFromPoint(x, y, offset = 0) {
+  const hue = (Math.abs(Math.sin((x + offset) * 0.012) + Math.cos((y - offset) * 0.011)) * 360) % 360;
+  return `hsl(${hue}, 95%, 55%)`;
+}
+
 function drawSegment(seg, style) {
   ctx.save();
   const brush = style.brush || 'scribble';
@@ -389,6 +470,126 @@ function drawSegment(seg, style) {
       const spread = Math.random() * radius;
       ctx.fillRect(x + Math.cos(angle) * spread, y + Math.sin(angle) * spread, 1.4, 1.4);
     }
+    ctx.restore();
+    return;
+  }
+
+  if (brush === 'glitter') {
+    // Glitter gel pen: translucent ink ribbon + metallic micro-flakes + sparse specular flashes.
+    const dx = seg.x2 - seg.x1;
+    const dy = seg.y2 - seg.y1;
+    const distance = Math.max(4, Math.hypot(dx, dy));
+
+    // 1) Semi-transparent gel body.
+    ctx.globalAlpha = Math.min(0.55, opacity * 0.7);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = lineWidth * 1.8;
+    ctx.shadowColor = 'rgba(255,255,255,0.35)';
+    ctx.shadowBlur = Math.max(2, lineWidth * 0.75);
+    ctx.beginPath();
+    ctx.moveTo(seg.x1, seg.y1);
+    ctx.lineTo(seg.x2, seg.y2);
+    ctx.stroke();
+
+    // 2) Metallic sheen in the core ribbon.
+    const coreGrad = ctx.createLinearGradient(seg.x1 - dy * 0.15, seg.y1 + dx * 0.15, seg.x2 - dy * 0.15, seg.y2 + dx * 0.15);
+    coreGrad.addColorStop(0, color);
+    coreGrad.addColorStop(0.2, '#ffe7b2');
+    coreGrad.addColorStop(0.5, '#fff9ea');
+    coreGrad.addColorStop(0.78, '#ffd77f');
+    coreGrad.addColorStop(1, color);
+    ctx.globalAlpha = Math.min(0.95, opacity);
+    ctx.shadowBlur = Math.max(1, lineWidth * 0.45);
+    ctx.shadowColor = 'rgba(255,255,255,0.45)';
+    ctx.strokeStyle = coreGrad;
+    ctx.lineWidth = Math.max(1, lineWidth * 0.96);
+    ctx.beginPath();
+    ctx.moveTo(seg.x1, seg.y1);
+    ctx.lineTo(seg.x2, seg.y2);
+    ctx.stroke();
+
+    // 3) Narrow wet highlight strip.
+    ctx.globalAlpha = Math.min(0.45, opacity * 0.56);
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = 'rgba(255,255,255,0.86)';
+    ctx.lineWidth = Math.max(0.55, lineWidth * 0.2);
+    ctx.beginPath();
+    ctx.moveTo(seg.x1 - dy * 0.018, seg.y1 + dx * 0.018);
+    ctx.lineTo(seg.x2 - dy * 0.018, seg.y2 + dx * 0.018);
+    ctx.stroke();
+
+    // 4) Dense metallic flakes.
+    const flakeCount = Math.min(120, Math.max(22, Math.round(distance * 0.78)));
+    ctx.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < flakeCount; i += 1) {
+      const t = i / flakeCount;
+      const px = seg.x1 + dx * t;
+      const py = seg.y1 + dy * t;
+      const n1 = seededNoise(px * 0.129 + py * 0.067 + i * 1.71);
+      const n2 = seededNoise(px * 0.081 + py * 0.153 + i * 2.41);
+      const ox = (n1 - 0.5) * lineWidth * 1.8;
+      const oy = (n2 - 0.5) * lineWidth * 1.8;
+      const fx = px + ox;
+      const fy = py + oy;
+      const fr = 0.28 + n2 * Math.max(0.7, lineWidth * 0.25);
+
+      ctx.globalAlpha = 0.36 + n1 * 0.4;
+      ctx.fillStyle = n1 > 0.76 ? '#ffffff' : n1 > 0.5 ? '#ffe9a8' : '#ffd870';
+      ctx.beginPath();
+      ctx.arc(fx, fy, fr, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Sparse sharp glints for realistic glitter sparkle.
+      if (n2 > 0.84) {
+        const glint = fr * (2.5 + n1 * 1.8);
+        ctx.globalAlpha = 0.22 + n1 * 0.4;
+        ctx.strokeStyle = '#fffef7';
+        ctx.lineWidth = Math.max(0.35, fr * 0.65);
+        ctx.beginPath();
+        ctx.moveTo(fx - glint, fy);
+        ctx.lineTo(fx + glint, fy);
+        ctx.moveTo(fx, fy - glint);
+        ctx.lineTo(fx, fy + glint);
+        ctx.stroke();
+      }
+    }
+
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.restore();
+    return;
+  }
+
+  if (brush === 'watercolor') {
+    ctx.strokeStyle = color;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.globalAlpha = Math.min(opacity, 0.2);
+
+    for (let i = 0; i < 4; i += 1) {
+      const n = seededNoise(seg.x1 * 0.03 + seg.y2 * 0.02 + i * 3.17);
+      const ox = (n - 0.5) * lineWidth * 1.8;
+      const oy = (seededNoise(seg.y1 * 0.04 + seg.x2 * 0.03 + i * 2.03) - 0.5) * lineWidth * 1.8;
+      ctx.lineWidth = lineWidth * (1.6 + i * 0.2);
+      ctx.beginPath();
+      ctx.moveTo(seg.x1 + ox, seg.y1 + oy);
+      ctx.lineTo(seg.x2 + ox * 0.5, seg.y2 + oy * 0.5);
+      ctx.stroke();
+    }
+    ctx.restore();
+    return;
+  }
+
+  if (brush === 'mixedcolor') {
+    const grad = ctx.createLinearGradient(seg.x1, seg.y1, seg.x2, seg.y2);
+    grad.addColorStop(0, mixedColorFromPoint(seg.x1, seg.y1, 0));
+    grad.addColorStop(0.5, mixedColorFromPoint((seg.x1 + seg.x2) / 2, (seg.y1 + seg.y2) / 2, 31));
+    grad.addColorStop(1, mixedColorFromPoint(seg.x2, seg.y2, 67));
+    ctx.strokeStyle = grad;
+    ctx.lineWidth = lineWidth;
+    ctx.beginPath();
+    ctx.moveTo(seg.x1, seg.y1);
+    ctx.lineTo(seg.x2, seg.y2);
+    ctx.stroke();
     ctx.restore();
     return;
   }
@@ -511,7 +712,7 @@ function loadBoardImage(payload, statusMessage, resetHistoryState = false) {
     boardImage.img = null;
     imageHistory.length = 0;
     imageHistoryIndex = -1;
-    redrawAll();
+    resize();
     return;
   }
   const img = new Image();
@@ -534,7 +735,7 @@ function loadBoardImage(payload, statusMessage, resetHistoryState = false) {
     frameWidthInput.value = String(boardImage.frame.width);
     imageWidthInput.value = '100';
     imageHeightInput.value = '100';
-    redrawAll();
+    resize();
     if (resetHistoryState) {
       resetImageHistory();
     }
@@ -561,7 +762,7 @@ function importImageFile(file) {
         width: Number(frameWidthInput.value)
       };
       fitImageContain();
-      redrawAll();
+      resize();
       emitImageState();
       resetImageHistory();
       setStatus('Image imported and synced.');
@@ -779,7 +980,7 @@ function addTextAt(point) {
     color: colorInput.value
   };
   textItems.push(item);
-  redrawAll();
+  resize();
   socket.emit('add-text', item);
 }
 
@@ -789,7 +990,7 @@ function removeLastText() {
   }
   const item = textItems[textItems.length - 1];
   textItems.pop();
-  redrawAll();
+  resize();
   socket.emit('remove-text', { id: item.id });
 }
 
@@ -826,7 +1027,7 @@ function startDraw(e) {
     hitText.text = trimmed;
     hitText.size = Number(textSizeInput.value);
     hitText.color = colorInput.value;
-    redrawAll();
+    resize();
     socket.emit('update-text', {
       id: hitText.id,
       text: hitText.text,
@@ -859,6 +1060,7 @@ function startDraw(e) {
     pushImageHistory();
     dragOffsetX = point.x - boardImage.x;
     dragOffsetY = point.y - boardImage.y;
+    updateCanvasCursor();
     return;
   }
 
@@ -882,6 +1084,7 @@ function startDraw(e) {
     opacity: stroke.opacity,
     brush: stroke.brush
   });
+  updateCanvasCursor();
 }
 
 function moveDraw(e) {
@@ -935,12 +1138,14 @@ function stopDraw() {
   if (draggingImage && boardImage.img && currentRoomId) {
     socket.emit('move-image', { x: boardImage.x, y: boardImage.y });
     pushImageHistory();
+    resize();
   }
   if (draggingText && currentRoomId) {
     const item = textItems.find((t) => t.id === draggingTextId);
     if (item) {
       socket.emit('update-text', { id: item.id, x: item.x, y: item.y });
     }
+    resize();
   }
   drawing = false;
   last = null;
@@ -948,6 +1153,7 @@ function stopDraw() {
   draggingImage = false;
   draggingText = false;
   draggingTextId = '';
+  updateCanvasCursor();
 }
 
 function loadFromQuery() {
@@ -1031,6 +1237,14 @@ swatchButtons.forEach((btn) => {
   });
 });
 
+brushInput.addEventListener('change', updateCanvasCursor);
+
+mobileTabButtons.forEach((btn) => {
+  btn.addEventListener('click', () => {
+    setMobileSection(btn.dataset.tab || 'draw');
+  });
+});
+
 joinBtn.addEventListener('click', joinRoom);
 clearBtn.addEventListener('click', () => {
   if (!ensureJoined()) return;
@@ -1088,7 +1302,7 @@ fitContainBtn.addEventListener('click', () => {
   if (!boardImage.img || !ensureJoined()) return;
   pushImageHistory();
   fitImageContain();
-  redrawAll();
+  resize();
   socket.emit('scale-image', { width: boardImage.width, height: boardImage.height });
   socket.emit('move-image', { x: boardImage.x, y: boardImage.y });
   pushImageHistory();
@@ -1097,7 +1311,7 @@ fillBgBtn.addEventListener('click', () => {
   if (!boardImage.img || !ensureJoined()) return;
   pushImageHistory();
   fitImageFillBackground();
-  redrawAll();
+  resize();
   socket.emit('scale-image', { width: boardImage.width, height: boardImage.height });
   socket.emit('move-image', { x: boardImage.x, y: boardImage.y });
   pushImageHistory();
@@ -1106,7 +1320,7 @@ originalSizeBtn.addEventListener('click', () => {
   if (!boardImage.img || !ensureJoined()) return;
   pushImageHistory();
   setOriginalImageSize();
-  redrawAll();
+  resize();
   socket.emit('scale-image', { width: boardImage.width, height: boardImage.height });
   socket.emit('move-image', { x: boardImage.x, y: boardImage.y });
   pushImageHistory();
@@ -1121,7 +1335,7 @@ imageWidthInput.addEventListener('pointerdown', () => {
 imageWidthInput.addEventListener('input', () => {
   if (!boardImage.img || !currentRoomId) return;
   boardImage.width = boardImage.baseWidth * (Number(imageWidthInput.value) / 100);
-  redrawAll();
+  resize();
   socket.emit('scale-image', { width: boardImage.width, height: boardImage.height });
 });
 imageWidthInput.addEventListener('change', () => {
@@ -1139,7 +1353,7 @@ imageHeightInput.addEventListener('pointerdown', () => {
 imageHeightInput.addEventListener('input', () => {
   if (!boardImage.img || !currentRoomId) return;
   boardImage.height = boardImage.baseHeight * (Number(imageHeightInput.value) / 100);
-  redrawAll();
+  resize();
   socket.emit('scale-image', { width: boardImage.width, height: boardImage.height });
 });
 imageHeightInput.addEventListener('change', () => {
@@ -1154,20 +1368,20 @@ removeImageBtn.addEventListener('click', () => {
   boardImage.img = null;
   imageHistory.length = 0;
   imageHistoryIndex = -1;
-  redrawAll();
+  resize();
   socket.emit('remove-image');
 });
 
 frameStyleInput.addEventListener('change', () => {
   if (boardImage.img) pushImageHistory();
   boardImage.frame.style = frameStyleInput.value;
-  redrawAll();
+  resize();
   emitImageState();
   if (boardImage.img) pushImageHistory();
 });
 frameColorInput.addEventListener('input', () => {
   boardImage.frame.color = frameColorInput.value;
-  redrawAll();
+  resize();
 });
 frameColorInput.addEventListener('change', () => {
   if (!boardImage.img) return;
@@ -1181,7 +1395,7 @@ frameWidthInput.addEventListener('input', () => {
     frameAdjustActive = true;
   }
   boardImage.frame.width = Number(frameWidthInput.value);
-  redrawAll();
+  resize();
   emitImageState();
 });
 frameWidthInput.addEventListener('change', () => {
@@ -1194,6 +1408,7 @@ removeLastTextBtn.addEventListener('click', removeLastText);
 
 canvas.addEventListener('mousedown', startDraw);
 canvas.addEventListener('mousemove', moveDraw);
+canvas.addEventListener('mouseenter', updateCanvasCursor);
 window.addEventListener('mouseup', stopDraw);
 canvas.addEventListener('touchstart', (e) => {
   e.preventDefault();
@@ -1300,27 +1515,27 @@ socket.on('image-moved', (payload) => {
   if (!boardImage.img) return;
   boardImage.x = Number(payload.x || 0);
   boardImage.y = Number(payload.y || 0);
-  redrawAll();
+  resize();
 });
 
 socket.on('image-scaled', (payload) => {
   if (!boardImage.img) return;
   boardImage.width = Number(payload.width || boardImage.width);
   boardImage.height = Number(payload.height || boardImage.height);
-  redrawAll();
+  resize();
 });
 
 socket.on('image-removed', () => {
   boardImage.dataUrl = '';
   boardImage.img = null;
-  redrawAll();
+  resize();
 });
 
 socket.on('text-added', (item) => {
   if (!item?.id) return;
   if (!textItems.some((t) => t.id === item.id)) {
     textItems.push(item);
-    redrawAll();
+    resize();
   }
 });
 
@@ -1328,7 +1543,7 @@ socket.on('text-removed', ({ id }) => {
   const index = textItems.findIndex((item) => item.id === id);
   if (index >= 0) {
     textItems.splice(index, 1);
-    redrawAll();
+    resize();
   }
 });
 
@@ -1344,13 +1559,15 @@ socket.on('text-updated', (item) => {
     existing.size = Number(item.size || existing.size || 24);
     existing.color = item.color || existing.color || '#111111';
   }
-  redrawAll();
+  resize();
 });
 
 window.addEventListener('resize', resize);
 loadFromQuery();
 resize();
 updateModeButtons();
+refreshResponsiveSections();
+updateCanvasCursor();
 if (roomInput.value.trim()) {
   joinRoom();
 } else {

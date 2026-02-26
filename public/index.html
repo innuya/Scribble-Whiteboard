@@ -5,37 +5,52 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Scribble Whiteboard</title>
     <link rel="stylesheet" href="styles.css" />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20,500,0,0"
+    />
   </head>
   <body>
     <div class="topbar">
-      <div class="group">
-        <label>Room</label>
-        <input id="roomInput" type="text" placeholder="enter room name" maxlength="40" />
-        <label>Token</label>
-        <input id="tokenInput" type="text" placeholder="optional" maxlength="64" />
-        <button id="joinBtn">Join</button>
+      <div class="mobile-tabs" id="mobileTabs">
+        <button class="mobile-tab active" data-tab="room">Room</button>
+        <button class="mobile-tab" data-tab="draw">Draw</button>
+        <button class="mobile-tab" data-tab="image">Image</button>
+        <button class="mobile-tab" data-tab="text">Text</button>
+        <button class="mobile-tab" data-tab="edit">Edit</button>
       </div>
 
-      <div class="group">
-        <label>Color</label>
+      <div class="group" data-section="room">
+        <label title="Room Name">Room</label>
+        <input id="roomInput" type="text" placeholder="enter room name" maxlength="40" />
+        <label title="Access Token">Token</label>
+        <input id="tokenInput" type="text" placeholder="optional" maxlength="64" />
+        <button id="joinBtn" class="btn-with-icon" title="Join Room"><span class="mi">login</span>Join</button>
+      </div>
+
+      <div class="group" data-section="draw">
+        <label title="Brush Color">Color</label>
         <input id="colorInput" type="color" value="#1f1f1f" />
-        <label>Size</label>
+        <label title="Brush Size">Size</label>
         <input id="sizeInput" type="range" min="1" max="36" value="4" />
-        <label>Opacity</label>
+        <label title="Opacity">Opacity</label>
         <input id="opacityInput" type="range" min="10" max="100" value="100" />
-        <label>Brush</label>
+        <label title="Brush Type">Brush</label>
         <select id="brushInput">
           <option value="scribble" selected>Scribble</option>
           <option value="pen">Pen</option>
           <option value="marker">Marker</option>
           <option value="spray">Spray</option>
+          <option value="glitter">Glitter Pen</option>
+          <option value="watercolor">Watercolor</option>
+          <option value="mixedcolor">Mixed Color</option>
           <option value="neon">Neon</option>
           <option value="calligraphy">Calligraphy</option>
           <option value="eraser">Smooth Eraser</option>
         </select>
       </div>
 
-      <div class="group">
+      <div class="group" data-section="draw">
         <span>Palette</span>
         <button class="swatch" data-color="#111111" style="--sw:#111111"></button>
         <button class="swatch" data-color="#2b2d42" style="--sw:#2b2d42"></button>
@@ -51,39 +66,39 @@
         <button class="swatch" data-color="#ff006e" style="--sw:#ff006e"></button>
       </div>
 
-      <div class="group">
-        <button id="undoBtn">Undo</button>
-        <button id="redoBtn">Redo</button>
-        <button id="clearBtn">Clear</button>
-        <button id="fillModeBtn">Fill Mode</button>
-        <label>Tolerance</label>
+      <div class="group" data-section="draw">
+        <button id="undoBtn" class="btn-with-icon" title="Undo Stroke"><span class="mi">undo</span>Undo</button>
+        <button id="redoBtn" class="btn-with-icon" title="Redo Stroke"><span class="mi">redo</span>Redo</button>
+        <button id="clearBtn" class="btn-with-icon" title="Clear Canvas"><span class="mi">mop</span>Clear</button>
+        <button id="fillModeBtn" class="btn-with-icon" title="Flood Fill Mode"><span class="mi">format_color_fill</span>Fill Mode</button>
+        <label title="Fill Tolerance">Tolerance</label>
         <input id="fillToleranceInput" type="range" min="0" max="100" value="22" />
       </div>
 
-      <div class="group">
-        <button id="shareBtn">Create Share Link</button>
-        <button id="saveBtn">Save Room</button>
+      <div class="group" data-section="room">
+        <button id="shareBtn" class="btn-with-icon" title="Create Share Link"><span class="mi">share</span>Create Share Link</button>
+        <button id="saveBtn" class="btn-with-icon" title="Save Room"><span class="mi">save</span>Save Room</button>
         <span id="usersCount">Users: 0</span>
       </div>
 
-      <div class="group">
-        <button id="importImageBtn">Import Image</button>
+      <div class="group" data-section="image">
+        <button id="importImageBtn" class="btn-with-icon" title="Import Image"><span class="mi">image</span>Import Image</button>
         <input id="imageInput" type="file" accept="image/*" />
-        <button id="imageUndoBtn">Image Undo</button>
-        <button id="imageRedoBtn">Image Redo</button>
-        <button id="moveImageBtn">Move Image</button>
-        <button id="fitContainBtn">Fit Image</button>
-        <button id="fillBgBtn">Fill Background</button>
-        <button id="originalSizeBtn">Original Size</button>
-        <label>W%</label>
+        <button id="imageUndoBtn" class="btn-with-icon" title="Undo Image Edit"><span class="mi">undo</span>Image Undo</button>
+        <button id="imageRedoBtn" class="btn-with-icon" title="Redo Image Edit"><span class="mi">redo</span>Image Redo</button>
+        <button id="moveImageBtn" class="btn-with-icon" title="Move Image"><span class="mi">open_with</span>Move Image</button>
+        <button id="fitContainBtn" class="btn-with-icon" title="Fit Image in Canvas"><span class="mi">fit_screen</span>Fit Image</button>
+        <button id="fillBgBtn" class="btn-with-icon" title="Fill Canvas with Image"><span class="mi">aspect_ratio</span>Fill Background</button>
+        <button id="originalSizeBtn" class="btn-with-icon" title="Original Image Size"><span class="mi">photo_size_select_small</span>Original Size</button>
+        <label title="Image Width Percent">W%</label>
         <input id="imageWidthInput" type="range" min="10" max="220" value="100" />
-        <label>H%</label>
+        <label title="Image Height Percent">H%</label>
         <input id="imageHeightInput" type="range" min="10" max="220" value="100" />
-        <button id="removeImageBtn">Remove Image</button>
+        <button id="removeImageBtn" class="btn-with-icon" title="Remove Image"><span class="mi">delete</span>Remove</button>
       </div>
 
-      <div class="group">
-        <label>Frame</label>
+      <div class="group" data-section="image">
+        <label title="Frame Style">Frame</label>
         <select id="frameStyleInput">
           <option value="none" selected>None</option>
           <option value="solid">Solid</option>
@@ -91,33 +106,33 @@
           <option value="double">Double</option>
           <option value="glow">Glow</option>
         </select>
-        <label>Frame Color</label>
+        <label title="Frame Color">Frame Color</label>
         <input id="frameColorInput" type="color" value="#111111" />
-        <label>Frame Size</label>
+        <label title="Frame Size">Frame Size</label>
         <input id="frameWidthInput" type="range" min="1" max="24" value="3" />
       </div>
 
-      <div class="group">
+      <div class="group" data-section="text">
         <input id="textInput" type="text" placeholder="type text..." maxlength="120" />
-        <label>Text Size</label>
+        <label title="Text Size">Text Size</label>
         <input id="textSizeInput" type="range" min="12" max="72" value="28" />
-        <label>Place</label>
+        <label title="Text Placement">Place</label>
         <select id="textPlaceInput">
           <option value="outside" selected>Outside Image</option>
           <option value="inside">Inside Image</option>
           <option value="any">Anywhere</option>
         </select>
-        <button id="textModeBtn">Text Mode</button>
-        <button id="textMoveModeBtn">Text Move</button>
-        <button id="textEditModeBtn">Text Edit</button>
-        <button id="removeLastTextBtn">Remove Last Text</button>
+        <button id="textModeBtn" class="btn-with-icon" title="Add Text"><span class="mi">title</span>Text</button>
+        <button id="textMoveModeBtn" class="btn-with-icon" title="Move Existing Text"><span class="mi">drag_indicator</span>Text Move</button>
+        <button id="textEditModeBtn" class="btn-with-icon" title="Edit Existing Text"><span class="mi">edit</span>Text Edit</button>
+        <button id="removeLastTextBtn" class="btn-with-icon" title="Remove Last Text"><span class="mi">delete_forever</span>Remove Last Text</button>
       </div>
 
-      <div class="group">
-        <button id="cropModeBtn">Crop Tool</button>
-        <button id="cutModeBtn">Cut Tool</button>
-        <button id="applyEditBtn">Apply</button>
-        <button id="cancelEditBtn">Cancel</button>
+      <div class="group" data-section="edit">
+        <button id="cropModeBtn" class="btn-with-icon" title="Crop Image Tool"><span class="mi">crop</span>Crop</button>
+        <button id="cutModeBtn" class="btn-with-icon" title="Cut Image Tool"><span class="mi">content_cut</span>Cut</button>
+        <button id="applyEditBtn" class="btn-with-icon" title="Apply Selection Edit"><span class="mi">done</span>Apply</button>
+        <button id="cancelEditBtn" class="btn-with-icon" title="Cancel Selection"><span class="mi">close</span>Cancel</button>
       </div>
     </div>
 
