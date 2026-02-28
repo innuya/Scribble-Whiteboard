@@ -42,10 +42,11 @@ body {
   position: sticky;
   top: 0;
   z-index: 30;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-  padding: 6px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  align-items: start;
+  gap: 6px;
+  padding: 8px;
   border-bottom: 2px solid var(--line-soft);
   background: rgba(255, 255, 255, 0.84);
   backdrop-filter: blur(10px);
@@ -59,16 +60,17 @@ body {
 .group {
   display: flex;
   align-items: center;
+  align-content: flex-start;
   flex-wrap: wrap;
-  gap: 4px;
-  min-width: 240px;
-  flex: 1 1 340px;
-  padding: 5px 6px;
+  gap: 6px 7px;
+  min-width: 0;
+  width: 100%;
+  padding: 8px 9px;
   border: 1px solid var(--line-soft);
   border-radius: 14px;
   background: linear-gradient(180deg, var(--panel-strong) 0%, var(--panel) 100%);
   box-shadow: 0 6px 12px rgba(50, 69, 108, 0.08);
-  min-height: 40px;
+  min-height: 46px;
 }
 
 .statusbar {
@@ -102,7 +104,7 @@ button,
 input,
 a,
 select {
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.15;
 }
 
@@ -115,12 +117,12 @@ input[type="text"],
 select {
   border: 1px solid #96a6c2;
   border-radius: 10px;
-  padding: 5px 7px;
+  padding: 6px 8px;
   background: #fff;
   color: var(--ink);
   outline: none;
   font-family: inherit;
-  min-height: 30px;
+  min-height: 32px;
 }
 
 input[type="text"]:focus,
@@ -130,19 +132,19 @@ select:focus {
 }
 
 input[type="text"] {
-  width: 108px;
+  width: 132px;
 }
 
 #roomInput {
-  width: 146px;
+  width: 170px;
 }
 
 #tokenInput {
-  width: 122px;
+  width: 148px;
 }
 
 #textInput {
-  width: 152px;
+  width: 200px;
 }
 
 input[type="range"] {
@@ -154,7 +156,7 @@ input[type="range"] {
 #frameWidthInput,
 #textSizeInput,
 #fillToleranceInput {
-  width: 70px;
+  width: 86px;
 }
 
 #imageInput {
@@ -166,8 +168,8 @@ button {
   border-radius: 10px;
   background: linear-gradient(180deg, var(--chip) 0%, #ffe082 100%);
   color: #1f2937;
-  padding: 5px 8px;
-  min-height: 30px;
+  padding: 6px 10px;
+  min-height: 32px;
   font-weight: 600;
   cursor: pointer;
   box-shadow: 0 2px 0 rgba(46, 58, 79, 0.18);
@@ -196,7 +198,7 @@ button.active {
 .btn-with-icon {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
+  gap: 4px;
 }
 
 .mi {
@@ -214,8 +216,8 @@ button.active {
 }
 
 .swatch {
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   border-radius: 999px;
   border: 2px solid #fff;
   box-shadow: 0 0 0 1px #4b5563;
@@ -241,8 +243,8 @@ button.active {
 }
 
 @media (max-width: 980px) {
-  .group {
-    min-width: 220px;
+  .topbar {
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   }
 
   #board {
@@ -252,8 +254,9 @@ button.active {
 
 @media (max-width: 700px) {
   .topbar {
-    gap: 4px;
-    padding: 4px;
+    grid-template-columns: 1fr;
+    gap: 5px;
+    padding: 6px;
   }
 
   .mobile-tabs {
@@ -261,6 +264,7 @@ button.active {
     grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 4px;
     width: 100%;
+    grid-column: 1 / -1;
   }
 
   .mobile-tab {
@@ -275,9 +279,8 @@ button.active {
   .group {
     min-width: 0;
     width: 100%;
-    flex: 1 1 100%;
-    gap: 4px;
-    padding: 4px 5px;
+    gap: 5px 6px;
+    padding: 6px;
   }
 
   .group[data-section] {
@@ -299,18 +302,18 @@ button.active {
   input,
   a,
   select {
-    font-size: 10px;
+    font-size: 11px;
   }
 
   button {
-    padding: 4px 6px;
-    min-height: 28px;
+    padding: 5px 7px;
+    min-height: 30px;
   }
 
   input[type="text"],
   select {
-    min-height: 28px;
-    padding: 4px 6px;
+    min-height: 30px;
+    padding: 5px 7px;
   }
 
   #imageWidthInput,
@@ -318,7 +321,7 @@ button.active {
   #frameWidthInput,
   #textSizeInput,
   #fillToleranceInput {
-    width: 64px;
+    width: 70px;
   }
 }
 
@@ -339,13 +342,13 @@ button.active {
   }
 
   .topbar {
-    padding: 3px;
-    gap: 3px;
+    padding: 4px;
+    gap: 4px;
   }
 
   .group {
     border-radius: 12px;
-    padding: 4px;
+    padding: 5px;
   }
 
   .btn-with-icon {
