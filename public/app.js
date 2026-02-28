@@ -706,7 +706,7 @@ function emitImageState() {
   });
 }
 
-function loadBoardImage(payload, statusMessage, resetHistoryState = false) {
+function loadBoardImage(payload, statusMessage, resetHistoryState = false, onLoaded = null) {
   if (!payload?.dataUrl) {
     boardImage.dataUrl = '';
     boardImage.img = null;
@@ -741,6 +741,9 @@ function loadBoardImage(payload, statusMessage, resetHistoryState = false) {
     }
     if (statusMessage) {
       setStatus(statusMessage);
+    }
+    if (typeof onLoaded === 'function') {
+      onLoaded();
     }
   };
   img.src = payload.dataUrl;
@@ -815,6 +818,15 @@ function applyImageEdit() {
   const srcCtx = srcCanvas.getContext('2d');
   srcCtx.drawImage(boardImage.img, 0, 0);
 
+  const finishEdit = () => {
+    emitImageState();
+    pushImageHistory();
+    selectionRect = null;
+    selectionDraft = null;
+    editMode = null;
+    updateModeButtons();
+  };
+
   if (editMode === 'crop') {
     const cropCanvas = document.createElement('canvas');
     cropCanvas.width = sw;
@@ -830,8 +842,11 @@ function applyImageEdit() {
         height: intersection.height,
         frame: boardImage.frame
       },
-      'Crop applied.'
+      'Crop applied.',
+      false,
+      finishEdit
     );
+    return;
   } else if (editMode === 'cut') {
     srcCtx.clearRect(sx, sy, sw, sh);
     loadBoardImage(
@@ -843,16 +858,12 @@ function applyImageEdit() {
         height: boardImage.height,
         frame: boardImage.frame
       },
-      'Cut applied.'
+      'Cut applied.',
+      false,
+      finishEdit
     );
+    return;
   }
-
-  emitImageState();
-  pushImageHistory();
-  selectionRect = null;
-  selectionDraft = null;
-  editMode = null;
-  updateModeButtons();
 }
 
 function hexToRgb(hex) {
