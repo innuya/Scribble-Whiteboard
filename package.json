@@ -1,4 +1,4 @@
-﻿{
+{
   "name": "scribble-whiteboard",
   "version": "1.0.0",
   "description": "Realtime multi-user scribble whiteboard",
@@ -9,7 +9,7 @@
   },
   "dependencies": {
     "express": "^4.19.2",
-    "mongoose": "^8.19.2",
+    "pg": "^8.19.0",
     "socket.io": "^4.8.1"
   }
 }

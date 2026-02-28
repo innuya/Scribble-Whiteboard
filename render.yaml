@@ -1,7 +1,7 @@
-﻿services:
+services:
   - type: web
     name: scribble-whiteboard
-    env: node
+    runtime: node
     plan: free
     buildCommand: npm install
     startCommand: npm start
@@ -9,6 +9,6 @@
     autoDeploy: true
     envVars:
       - key: NODE_VERSION
-        value: 20
-      - key: MONGODB_URI
+        value: "20"
+      - key: DATABASE_URL
         sync: false

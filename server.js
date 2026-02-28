@@ -1,7 +1,7 @@
 const crypto = require('crypto');
 const express = require('express');
 const http = require('http');
-const mongoose = require('mongoose');
+const { Pool } = require('pg');
 const { Server } = require('socket.io');
 
 const app = express();
@@ -9,79 +9,41 @@ const server = http.createServer(app);
 const io = new Server(server);
 
 const PORT = process.env.PORT || 3000;
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/scribble_whiteboard';
-
-const StrokeSchema = new mongoose.Schema(
-  {
-    id: { type: String, required: true },
-    userId: { type: String, required: true },
-    color: { type: String, required: true },
-    size: { type: Number, required: true },
-    opacity: { type: Number, default: 1 },
-    brush: { type: String, default: 'scribble' },
-    undone: { type: Boolean, default: false },
-    segments: [
-      {
-        x1: Number,
-        y1: Number,
-        x2: Number,
-        y2: Number
-      }
-    ]
-  },
-  { _id: false }
-);
-
-const RoomSchema = new mongoose.Schema(
-  {
-    roomId: { type: String, unique: true, required: true, index: true },
-    token: { type: String, default: null },
-    image: {
-      dataUrl: { type: String, default: null },
-      x: { type: Number, default: 0 },
-      y: { type: Number, default: 0 },
-      width: { type: Number, default: 0 },
-      height: { type: Number, default: 0 },
-      frame: {
-        style: { type: String, default: 'none' },
-        color: { type: String, default: '#111111' },
-        width: { type: Number, default: 2 }
-      }
-    },
-    textItems: {
-      type: [
-        {
-          id: String,
-          text: String,
-          x: Number,
-          y: Number,
-          size: Number,
-          color: String
-        }
-      ],
-      default: []
-    },
-    strokes: { type: [StrokeSchema], default: [] }
-  },
-  { timestamps: true }
-);
-
-const RoomModel = mongoose.model('Room', RoomSchema);
+const DATABASE_URL = process.env.DATABASE_URL || '';
 
 const roomState = new Map();
 const saveTimers = new Map();
 let dbReady = false;
+let dbPool = null;
 
 async function connectDb() {
   try {
-    await mongoose.connect(MONGODB_URI, {
-      serverSelectionTimeoutMS: 4000
+    if (!DATABASE_URL) {
+      throw new Error('DATABASE_URL is not set');
+    }
+
+    dbPool = new Pool({
+      connectionString: DATABASE_URL,
+      ssl: DATABASE_URL.includes('localhost') ? false : { rejectUnauthorized: false }
     });
+
+    await dbPool.query('SELECT 1');
+    await dbPool.query(`
+      CREATE TABLE IF NOT EXISTS rooms (
+        room_id TEXT PRIMARY KEY,
+        token TEXT,
+        image JSONB,
+        text_items JSONB NOT NULL DEFAULT '[]'::jsonb,
+        strokes JSONB NOT NULL DEFAULT '[]'::jsonb,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
+
     dbReady = true;
-    console.log(`MongoDB connected: ${MONGODB_URI}`);
+    console.log('PostgreSQL connected');
   } catch (error) {
     dbReady = false;
-    console.warn('MongoDB unavailable. Running without persistence.');
+    console.warn('PostgreSQL unavailable. Running without persistence.');
   }
 }
 
@@ -117,7 +79,23 @@ async function loadRoomFromDb(roomId) {
   if (!dbReady) {
     return null;
   }
-  return RoomModel.findOne({ roomId }).lean();
+
+  const result = await dbPool.query(
+    `
+      SELECT
+        room_id AS "roomId",
+        token,
+        image,
+        text_items AS "textItems",
+        strokes
+      FROM rooms
+      WHERE room_id = $1
+      LIMIT 1
+    `,
+    [roomId]
+  );
+
+  return result.rows[0] || null;
 }
 
 async function saveRoomToDb(roomId) {
@@ -126,17 +104,25 @@ async function saveRoomToDb(roomId) {
   }
 
   const room = roomState.get(roomId);
-  await RoomModel.updateOne(
-    { roomId },
-    {
-      $set: {
-        token: room.token,
-        image: room.image,
-        textItems: room.textItems,
-        strokes: room.strokes
-      }
-    },
-    { upsert: true }
+  await dbPool.query(
+    `
+      INSERT INTO rooms (room_id, token, image, text_items, strokes, updated_at)
+      VALUES ($1, $2, $3::jsonb, $4::jsonb, $5::jsonb, NOW())
+      ON CONFLICT (room_id)
+      DO UPDATE SET
+        token = EXCLUDED.token,
+        image = EXCLUDED.image,
+        text_items = EXCLUDED.text_items,
+        strokes = EXCLUDED.strokes,
+        updated_at = NOW()
+    `,
+    [
+      roomId,
+      room.token || null,
+      JSON.stringify(room.image || null),
+      JSON.stringify(Array.isArray(room.textItems) ? room.textItems : []),
+      JSON.stringify(Array.isArray(room.strokes) ? room.strokes : [])
+    ]
   );
 }
 
@@ -211,7 +197,7 @@ app.post('/api/rooms/save', async (req, res) => {
   }
 
   if (!dbReady) {
-    return res.status(503).json({ error: 'MongoDB is not connected. Save unavailable.' });
+    return res.status(503).json({ error: 'PostgreSQL is not connected. Save unavailable.' });
   }
 
   const room = await getRoom(roomId);
