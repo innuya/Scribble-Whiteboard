@@ -1193,11 +1193,12 @@ async function createShareLink() {
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || 'Failed to create link');
     tokenInput.value = data.token;
-    shareLink.textContent = data.shareUrl;
-    shareLink.href = data.shareUrl;
+    const netlifyShareUrl = `${window.location.origin}/?room=${encodeURIComponent(room)}&token=${encodeURIComponent(data.token)}`;
+    shareLink.textContent = netlifyShareUrl;
+    shareLink.href = netlifyShareUrl;
     setStatus('Share link ready. Anyone with this URL can join.');
     if (navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(data.shareUrl);
+      await navigator.clipboard.writeText(netlifyShareUrl);
       setStatus('Share link copied to clipboard.');
     }
   } catch (error) {
