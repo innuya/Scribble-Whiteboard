@@ -1,4 +1,4 @@
-﻿# Scribble Whiteboard (Realtime + Multiuser)
+# Scribble Whiteboard (Realtime + Multiuser)
 
 A collaborative whiteboard with scribble-style drawing, live sync, room sharing, token-protected access, and MongoDB persistence.
 
@@ -70,3 +70,19 @@ Anyone can open that URL on phone/laptop.
    ```
 3. Open from another device on same network:
    - `http://<your-local-ip>:3000`
+
+## Deploy on Vercel (Frontend) + Render/Railway (Backend)
+
+This project uses Socket.IO with in-memory room state, so full realtime backend should run on a persistent Node host (Render/Railway/Fly), not Vercel serverless.
+
+1. Deploy backend (`server.js`) to Render/Railway.
+2. Set backend environment variables:
+   - `DATABASE_URL=<your postgres connection string>`
+   - `CORS_ORIGIN=https://<your-vercel-domain>`
+3. Deploy frontend to Vercel from this same repo.
+4. In `public/config.js`, set:
+   - `API_BASE_URL: "https://<your-backend-domain>"`
+   - `SOCKET_URL: "https://<your-backend-domain>"`
+5. Redeploy Vercel and test room join/draw/share.
+
+If `API_BASE_URL` and `SOCKET_URL` are left empty, the app uses same-origin URLs for local development.

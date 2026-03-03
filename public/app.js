@@ -1,4 +1,8 @@
-﻿const socket = io();
+const APP_CONFIG = window.APP_CONFIG || {};
+const API_BASE_URL = String(APP_CONFIG.API_BASE_URL || '').replace(/\/+$/, '');
+const SOCKET_URL = String(APP_CONFIG.SOCKET_URL || API_BASE_URL || '').replace(/\/+$/, '');
+const apiUrl = (path) => (API_BASE_URL ? `${API_BASE_URL}${path}` : path);
+const socket = SOCKET_URL ? io(SOCKET_URL, { transports: ['websocket', 'polling'] }) : io();
 
 const canvas = document.getElementById('board');
 const ctx = canvas.getContext('2d');
@@ -133,6 +137,11 @@ function refreshResponsiveSections() {
 
 function randomId() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function toFiniteNumber(value, fallback) {
+  const num = Number(value);
+  return Number.isFinite(num) ? num : fallback;
 }
 
 function getImageSnapshot() {
@@ -719,10 +728,10 @@ function loadBoardImage(payload, statusMessage, resetHistoryState = false, onLoa
   img.onload = () => {
     boardImage.dataUrl = payload.dataUrl;
     boardImage.img = img;
-    boardImage.x = Number(payload.x || 0);
-    boardImage.y = Number(payload.y || 0);
-    boardImage.width = Number(payload.width || img.width);
-    boardImage.height = Number(payload.height || img.height);
+    boardImage.x = toFiniteNumber(payload.x, 0);
+    boardImage.y = toFiniteNumber(payload.y, 0);
+    boardImage.width = Math.max(1, toFiniteNumber(payload.width, img.width));
+    boardImage.height = Math.max(1, toFiniteNumber(payload.height, img.height));
     boardImage.baseWidth = boardImage.width;
     boardImage.baseHeight = boardImage.height;
     boardImage.frame = {
@@ -807,10 +816,15 @@ function applyImageEdit() {
 
   const imgW = boardImage.img.width;
   const imgH = boardImage.img.height;
-  const sx = Math.floor(((intersection.x - boardImage.x) / boardImage.width) * imgW);
-  const sy = Math.floor(((intersection.y - boardImage.y) / boardImage.height) * imgH);
-  const sw = Math.floor((intersection.width / boardImage.width) * imgW);
-  const sh = Math.floor((intersection.height / boardImage.height) * imgH);
+  const sxRaw = Math.floor(((intersection.x - boardImage.x) / boardImage.width) * imgW);
+  const syRaw = Math.floor(((intersection.y - boardImage.y) / boardImage.height) * imgH);
+  const swRaw = Math.floor((intersection.width / boardImage.width) * imgW);
+  const shRaw = Math.floor((intersection.height / boardImage.height) * imgH);
+
+  const sx = Math.max(0, Math.min(imgW - 1, sxRaw));
+  const sy = Math.max(0, Math.min(imgH - 1, syRaw));
+  const sw = Math.max(1, Math.min(imgW - sx, swRaw));
+  const sh = Math.max(1, Math.min(imgH - sy, shRaw));
 
   const srcCanvas = document.createElement('canvas');
   srcCanvas.width = imgW;
@@ -1196,20 +1210,27 @@ async function createShareLink() {
     return;
   }
   try {
-    const response = await fetch('/api/rooms/share', {
+    const response = await fetch(apiUrl('/api/rooms/share'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ roomId: room })
     });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || 'Failed to create link');
-    tokenInput.value = data.token;
-    const netlifyShareUrl = `${window.location.origin}/?room=${encodeURIComponent(room)}&token=${encodeURIComponent(data.token)}`;
-    shareLink.textContent = netlifyShareUrl;
-    shareLink.href = netlifyShareUrl;
+    const sharedRoomId = String(data.roomId || room).trim();
+    const sharedToken = String(data.token || '').trim();
+    const shareUrl =
+      typeof data.shareUrl === 'string' && data.shareUrl.trim()
+        ? data.shareUrl
+        : `${window.location.origin}/?room=${encodeURIComponent(sharedRoomId)}&token=${encodeURIComponent(sharedToken)}`;
+
+    roomInput.value = sharedRoomId;
+    tokenInput.value = sharedToken;
+    shareLink.textContent = shareUrl;
+    shareLink.href = shareUrl;
     setStatus('Share link ready. Anyone with this URL can join.');
     if (navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(netlifyShareUrl);
+      await navigator.clipboard.writeText(shareUrl);
       setStatus('Share link copied to clipboard.');
     }
   } catch (error) {
@@ -1226,7 +1247,7 @@ async function saveRoom() {
   saveBtn.disabled = true;
   saveBtn.textContent = 'Saving...';
   try {
-    const response = await fetch('/api/rooms/save', {
+    const response = await fetch(apiUrl('/api/rooms/save'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ roomId: room })
@@ -1525,15 +1546,15 @@ socket.on('image-updated', (payload) => {
 
 socket.on('image-moved', (payload) => {
   if (!boardImage.img) return;
-  boardImage.x = Number(payload.x || 0);
-  boardImage.y = Number(payload.y || 0);
+  boardImage.x = toFiniteNumber(payload.x, boardImage.x);
+  boardImage.y = toFiniteNumber(payload.y, boardImage.y);
   resize();
 });
 
 socket.on('image-scaled', (payload) => {
   if (!boardImage.img) return;
-  boardImage.width = Number(payload.width || boardImage.width);
-  boardImage.height = Number(payload.height || boardImage.height);
+  boardImage.width = Math.max(1, toFiniteNumber(payload.width, boardImage.width));
+  boardImage.height = Math.max(1, toFiniteNumber(payload.height, boardImage.height));
   resize();
 });
 
@@ -1565,11 +1586,15 @@ socket.on('text-updated', (item) => {
   if (!existing) {
     textItems.push(item);
   } else {
-    existing.text = item.text;
-    existing.x = Number(item.x || existing.x || 0);
-    existing.y = Number(item.y || existing.y || 0);
-    existing.size = Number(item.size || existing.size || 24);
-    existing.color = item.color || existing.color || '#111111';
+    if (typeof item.text === 'string') {
+      existing.text = item.text;
+    }
+    existing.x = toFiniteNumber(item.x, existing.x ?? 0);
+    existing.y = toFiniteNumber(item.y, existing.y ?? 0);
+    existing.size = Math.max(1, toFiniteNumber(item.size, existing.size ?? 24));
+    if (typeof item.color === 'string' && item.color.trim()) {
+      existing.color = item.color;
+    }
   }
   resize();
 });
@@ -1585,3 +1610,4 @@ if (roomInput.value.trim()) {
 } else {
   setStatus('Enter room name and click Join.');
 }
+

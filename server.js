@@ -6,7 +6,13 @@ const { Server } = require('socket.io');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+const CORS_ORIGIN = process.env.CORS_ORIGIN || '*';
+const io = new Server(server, {
+  cors: {
+    origin: CORS_ORIGIN === '*' ? true : CORS_ORIGIN.split(',').map((v) => v.trim()),
+    methods: ['GET', 'POST']
+  }
+});
 
 const PORT = process.env.PORT || 3000;
 const DATABASE_URL = process.env.DATABASE_URL || '';
@@ -169,6 +175,25 @@ function roomUsersCount(roomId) {
 }
 
 app.use(express.json());
+
+app.use((req, res, next) => {
+  const origin = req.headers.origin || '';
+  if (CORS_ORIGIN === '*') {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  } else {
+    const allowed = CORS_ORIGIN.split(',').map((v) => v.trim());
+    if (allowed.includes(origin)) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Vary', 'Origin');
+    }
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(204);
+  }
+  return next();
+});
 
 app.post('/api/rooms/share', async (req, res) => {
   const roomId = sanitizeRoomId(req.body?.roomId);
@@ -524,3 +549,4 @@ connectDb().finally(() => {
     console.log(`Scribble whiteboard running at http://localhost:${PORT}`);
   });
 });
+
